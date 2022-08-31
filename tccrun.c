@@ -34,10 +34,6 @@
 static void set_pages_executable(TCCState *s1, int mode, void *ptr, unsigned long length);
 static int tcc_relocate_ex(TCCState *s1, void *ptr, addr_t ptr_diff);
 
-#ifdef _WIN64
-static void *win64_add_function_table(TCCState *s1);
-static void win64_del_function_table(void *);
-#endif
 
 /* ------------------------------------------------------------- */
 /* Do all relocations (needed before using tcc_get_symbol())
@@ -95,9 +91,6 @@ ST_FUNC void tcc_run_free(TCCState *s1)
 #else
         /* unprotect memory to make it usable for malloc again */
         set_pages_executable(s1, 2, ptr, size);
-#ifdef _WIN64
-        win64_del_function_table(*(void**)ptr);
-#endif
         tcc_free(ptr);
 #endif
     }
@@ -179,14 +172,13 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr, addr_t ptr_diff)
 
         tcc_add_runtime(s1);
 	    resolve_common_syms(s1);
+        build_got_entries(s1, 0);
         if (s1->nb_errors)
             return -1;
     }
 
     offset = max_align = 0, mem = (addr_t)ptr;
-#ifdef _WIN64
-    offset += sizeof (void*); /* space for function_table pointer */
-#endif
+
     copy = 0;
 redo:
     for (k = 0; k < 3; ++k) { /* 0:rx, 1:ro, 2:rw sections */
@@ -210,10 +202,7 @@ redo:
                     memset(ptr, 0, length);
                 else
                     memcpy(ptr, s->data, length);
-#ifdef _WIN64
-                if (s == s1->uw_pdata)
-                    *(void**)mem = win64_add_function_table(s1);
-#endif
+
                 if (s->data) {
                     tcc_free(s->data);
                     s->data = NULL;
@@ -264,14 +253,10 @@ redo:
     if (0 == mem)
         return offset + max_align;
 
-#ifdef TCC_TARGET_PE
-    s1->pe_imagebase = mem;
-#endif
 
     /* relocate sections */
-#ifndef TCC_TARGET_PE
     relocate_plt(s1);
-#endif
+
     relocate_sections(s1);
     copy = 1;
     goto redo;
@@ -316,29 +301,7 @@ static void set_pages_executable(TCCState *s1, int mode, void *ptr, unsigned lon
 #endif
 }
 
-#ifdef _WIN64
-static void *win64_add_function_table(TCCState *s1)
-{
-    void *p = NULL;
-    if (s1->uw_pdata) {
-        p = (void*)s1->uw_pdata->sh_addr;
-        RtlAddFunctionTable(
-            (RUNTIME_FUNCTION*)p,
-            s1->uw_pdata->data_offset / sizeof (RUNTIME_FUNCTION),
-            s1->pe_imagebase
-            );
-        s1->uw_pdata = NULL;
-    }
-    return p;
-}
 
-static void win64_del_function_table(void *p)
-{
-    if (p) {
-        RtlDeleteFunctionTable((RUNTIME_FUNCTION*)p);
-    }
-}
-#endif
 #endif //ndef CONFIG_TCC_BACKTRACE_ONLY
 /* ------------------------------------------------------------- */
 
@@ -357,6 +320,9 @@ static struct tcc__runtime_funcitem tcc__runtime_funclist[]={
     tcc__new_funcitem(printf),tcc__new_funcitem(scanf),tcc__new_funcitem(fprintf),tcc__new_funcitem(fscanf),tcc__new_funcitem(sprintf),tcc__new_funcitem(sscanf),
     //environ
     tcc__new_funcitem(getenv),tcc__new_funcitem(putenv),
+    //other
+    tcc__new_funcitem(memset),tcc__new_funcitem(puts),tcc__new_funcitem(strtod),tcc__new_funcitem(putchar),tcc__new_funcitem(vprintf),
+    tcc__new_funcitem(strcpy),tcc__new_funcitem(strlen),
     //TinyCC API
     /*
     tcc__new_funcitem(tcc_new),tcc__new_funcitem(tcc_delete),tcc__new_funcitem(tcc_set_lib_path),

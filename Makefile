@@ -229,7 +229,7 @@ DEF_GITHASH := -DTCC_GITHASH="\"$(shell git rev-parse --abbrev-ref HEAD):$(GITHA
 endif
 
 ifeq ($(CONFIG_debug),yes)
-CFLAGS += -g
+CFLAGS += -ggdb3
 LDFLAGS += -g
 else
 ifndef CONFIG_OSX
@@ -427,7 +427,7 @@ config.mak:
 
 # run all tests
 test:
-	@$(MAKE) -C tests
+	$(MAKE) -C tests
 # run test(s) from tests2 subdir (see make help)
 tests2.%:
 	@$(MAKE) -C tests/tests2 $@
