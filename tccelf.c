@@ -811,10 +811,14 @@ static int windowsModulesCount=0;
 static void *windowsDlsym(const char *name){
   int i;
   void *result;
+  char buf[256];
+  
   if(windowsModules==NULL){
     MODULEENTRY32 module;
      HANDLE handle;
     dynarray_reset(&windowsModules,&windowsModulesCount);
+    //Load msvcrt first, some symbol may conflict to ntdll, like sprintf.
+    dynarray_add(&windowsModules,&windowsModulesCount,LoadLibrary("msvcrt.dll"));
      handle = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, 0);
      if (handle != INVALID_HANDLE_VALUE)
      {
@@ -833,6 +837,23 @@ static void *windowsDlsym(const char *name){
     result=GetProcAddress(windowsModules[i],name);
     if(result!=NULL){
       break;
+    }
+  }
+  if(result==NULL){
+    //on Windows, C api may has prefix "_".
+    buf[0]='_';
+    pstrcpy(buf+1,sizeof(buf)-1,name);
+    for(i=0;i<windowsModulesCount;i++){
+    result=GetProcAddress(windowsModules[i],(const char*)buf);
+      if(result!=NULL){
+        break;
+      }
+    }
+  }
+  if(result==NULL){
+    //environ symbol
+    if(strcmp(name,"_imp___environ")==0){
+      result = environ;
     }
   }
   return result;

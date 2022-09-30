@@ -1,4 +1,4 @@
-## TinyCC Minimum Viable Product
+## TinyCC minimal version
 
 
 A branch fork from TinyCC(https://repo.or.cz/tinycc.git)

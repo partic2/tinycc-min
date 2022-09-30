@@ -9,7 +9,7 @@ CFLAGS := $(filter-out -g% -O%,$(CFLAGS)) -I$(TOPSRC) $(LDFLAGS)
 
 # what tests to run
 TESTS = \
- hello-run test3
+ hello-run test3 tests2-dir pp-dir
 
 
 #ignored test
@@ -127,7 +127,7 @@ test2 test2b: tcctest.c test.ref
 test3 test3b: tcctest.c test.ref
 	@echo ------------ $@ ------------
 	@echo $(TCC)
-	$(TCC) -w -run $< > test.out3
+	$(TCC) $(RUN_TCC) -w -run $< > test.out3
 	@diff -u test.ref test.out3 && echo "$(AUTO_TEST)3 OK"
 
 AUTO_TEST = Auto Test

@@ -26,6 +26,8 @@ ifeq (,$(filter i386 x86_64,$(ARCH)))
  SKIP += 124_atomic_counter.test
  SKIP += 125_atomic_misc.test # currently only x86 supported
 endif
+CONFIG_backtrace=no
+CONFIG_bcheck=no
 ifeq ($(CONFIG_backtrace),no)
  SKIP += 113_btdll.test
  CONFIG_bcheck = no
@@ -61,6 +63,15 @@ endif
 ifneq (,$(filter Darwin,$(TARGETOS)))
  SKIP += 126_bound_global.test # bt-exe.c problem on apple
 endif
+
+# skip NORUN
+SKIP += 42_function_pointer.test 120_alias.test 106_versym.test 108_constructor.test 114_bound_signal.test 126_bound_global.test
+
+# skip compiler error
+SKIP += 60_errors_and_warnings.test 96_nodata_wanted.test
+
+# skip atomic 
+SKIP += 124_atomic_counter.test 125_atomic_misc.test 
 
 # Some tests might need arguments
 ARGS =
@@ -137,6 +148,9 @@ all test tests2.all: $(filter-out $(SKIP),$(TESTS))
 %.test: %.c %.expect
 	@echo Test: $*...
 	@$(call T1,$<) $(T3)
+
+PRINT_CC_CMD:
+	@echo $(call T1,xxx.c)
 
 T1 = $(TCC) $(FLAGS) $(T2) $(ARGS)
 T2 = $(if $(NORUN),$1 -o a.exe && ./a.exe,-run $1)

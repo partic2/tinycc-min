@@ -15,7 +15,7 @@
 .gdb_history
 a.out
 tcc_g
-tcc
+/tcc
 *-tcc
 libtcc*.def
 
