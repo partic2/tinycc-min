@@ -3235,10 +3235,12 @@ void local_label_test(void)
 /* inline assembler test */
 #if defined(__i386__) || defined(__x86_64__)
 
+typedef __SIZE_TYPE__ word;
+
 /* from linux kernel */
 static char * strncat1(char * dest,const char * src,size_t count)
 {
-long d0, d1, d2, d3;
+word d0, d1, d2, d3;
 __asm__ __volatile__(
 	"repne\n\t"
 	"scasb\n\t"
@@ -3260,7 +3262,7 @@ return dest;
 
 static char * strncat2(char * dest,const char * src,size_t count)
 {
-long d0, d1, d2, d3;
+word d0, d1, d2, d3;
 __asm__ __volatile__(
 	"repne scasb\n\t" /* one-line repne prefix + string op */
 	"dec %1\n\t"
@@ -3281,7 +3283,7 @@ return dest;
 
 static inline void * memcpy1(void * to, const void * from, size_t n)
 {
-size_t d0, d1, d2;
+word d0, d1, d2;
 __asm__ __volatile__(
 	"rep ; movsl\n\t"
 	"testb $2,%b4\n\t"
@@ -3299,7 +3301,7 @@ return (to);
 
 static inline void * memcpy2(void * to, const void * from, size_t n)
 {
-size_t d0, d1, d2;
+word d0, d1, d2;
 __asm__ __volatile__(
 	"rep movsl\n\t"  /* one-line rep prefix + string op */
 	"testb $2,%b4\n\t"
@@ -3379,12 +3381,12 @@ struct struct123 {
     int b;
 };
 struct struct1231 {
-    unsigned long addr;
+    word addr;
 };
 
 unsigned long mconstraint_test(struct struct1231 *r)
 {
-    unsigned long ret;
+    word ret;
     unsigned int a[2];
     a[0] = 0;
     __asm__ volatile ("lea %2,%0; movl 4(%0),%k0; addl %2,%k0; movl $51,%2; movl $52,4%2; movl $63,%1"
@@ -3406,11 +3408,11 @@ int fls64(unsigned long long x)
 
 void other_constraints_test(void)
 {
-    unsigned long ret;
+    word ret;
     int var;
 #if !defined(_WIN64) && CC_NAME != CC_clang
     __asm__ volatile ("mov %P1,%0" : "=r" (ret) : "p" (&var));
-    printf ("oc1: %d\n", ret == (unsigned long)&var);
+    printf ("oc1: %d\n", ret == (word)&var);
 #endif
 }
 
@@ -3527,8 +3529,8 @@ void clobber_r12(void)
 void test_high_clobbers_really(void)
 {
 #if defined __x86_64__ && !defined _WIN64
-    register long val asm("r12");
-    long val2;
+    register word val asm("r12");
+    word val2;
     /* This tests if asm clobbers correctly save/restore callee saved
        registers if they are clobbered and if it's the high 8 x86-64
        registers.  This is fragile for GCC as the constraints do not
@@ -3543,7 +3545,7 @@ void test_high_clobbers_really(void)
 void test_high_clobbers(void)
 {
 #if defined __x86_64__ && !defined _WIN64
-    long x1, x2;
+    word x1, x2;
     asm volatile("mov %%r12,%0" :: "m" (x1)); /* save r12 */
     test_high_clobbers_really();
     asm volatile("mov %%r12,%0" :: "m" (x2)); /* new r12 */
@@ -3609,7 +3611,7 @@ void trace_console(long len, long len2)
 
 void test_asm_dead_code(void)
 {
-  long rdi;
+  word rdi;
   /* Try to make sure that xdi contains a zero, and hence will
      lead to a segfault if the next asm is evaluated without
      arguments being set up.  */
@@ -3711,12 +3713,12 @@ void asm_test(void)
     char buf[128];
     unsigned int val, val2;
     struct struct123 s1;
-    struct struct1231 s2 = { (unsigned long)&s1 };
+    struct struct1231 s2 = { (word)&s1 };
     /* Hide the outer base_func, but check later that the inline
        asm block gets the outer one.  */
     int base_func = 42;
     void override_func3 (void);
-    unsigned long asmret;
+    word asmret;
 #ifdef BOOL_ISOC99
     _Bool somebool;
 #endif
@@ -4261,7 +4263,8 @@ void whitespace_test(void)
 {
     char *str;
 
-#if 1
+
+#if 1
     pri\
 ntf("whitspace:\n");
 #endif
@@ -4284,7 +4287,8 @@ ntf("min=%d\n", 4);
 ";
     printf("len1=%d str[0]=%d\n", strlen(str), str[0]);
 #endif
-    printf("len1=%d\n", strlen("a
+    printf("len1=%d\n", strlen("
+a
 "));
 #else
     printf("len1=1\nlen1=1 str[0]=10\nlen1=3\n");

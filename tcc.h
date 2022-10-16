@@ -1576,7 +1576,6 @@ ST_FUNC void gen_le32(int c);
 ST_FUNC void gen_addr32(int r, Sym *sym, int c);
 ST_FUNC void gen_addrpc32(int r, Sym *sym, int c);
 ST_FUNC void gen_cvt_csti(int t);
-ST_FUNC void gen_increment_tcov (SValue *sv);
 #endif
 
 /* ------------ x86_64-gen.c ------------ */
@@ -1596,7 +1595,6 @@ ST_FUNC void gen_cvt_csti(int t);
 ST_FUNC const char *default_elfinterp(struct TCCState *s);
 #endif
 ST_FUNC void arm_init(struct TCCState *s);
-ST_FUNC void gen_increment_tcov (SValue *sv);
 #endif
 
 /* ------------ arm64-gen.c ------------ */
@@ -1608,7 +1606,6 @@ ST_FUNC void gen_va_arg(CType *t);
 ST_FUNC void gen_clear_cache(void);
 ST_FUNC void gen_cvt_sxtw(void);
 ST_FUNC void gen_cvt_csti(int t);
-ST_FUNC void gen_increment_tcov (SValue *sv);
 #endif
 
 /* ------------ riscv64-gen.c ------------ */
@@ -1618,7 +1615,6 @@ ST_FUNC void gen_opl(int op);
 ST_FUNC void gen_va_start(void);
 ST_FUNC void arch_transfer_ret_regs(int);
 ST_FUNC void gen_cvt_sxtw(void);
-ST_FUNC void gen_increment_tcov (SValue *sv);
 #endif
 
 /* ------------ c67-gen.c ------------ */
