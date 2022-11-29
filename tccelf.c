@@ -335,8 +335,8 @@ ST_FUNC int put_elf_str(Section *s, const char *sym) {
 }
 
 /* elf symbol hashing function */
-static unsigned long elf_hash(const unsigned char *name) {
-  unsigned long h = 0, g;
+static ElfW(Word) elf_hash(const unsigned char *name) {
+  ElfW(Word) h = 0, g;
 
   while (*name) {
     h = (h << 4) + *name++;

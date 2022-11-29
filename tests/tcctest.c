@@ -3812,69 +3812,9 @@ void asm_test(void)
 
 #endif
 
-#define COMPAT_TYPE(type1, type2) \
-{\
-    printf("__builtin_types_compatible_p(%s, %s) = %d\n", #type1, #type2, \
-           __builtin_types_compatible_p (type1, type2));\
-}
-
 int constant_p_var;
 
 int func(void);
-
-void builtin_test(void)
-{
-    short s;
-    int i;
-    long long ll;
-#if GCC_MAJOR >= 3
-    COMPAT_TYPE(int, int);
-    COMPAT_TYPE(int, unsigned int);
-    COMPAT_TYPE(int, char);
-    COMPAT_TYPE(int, const int);
-    COMPAT_TYPE(int, volatile int);
-    COMPAT_TYPE(int *, int *);
-    COMPAT_TYPE(int *, void *);
-    COMPAT_TYPE(int *, const int *);
-    COMPAT_TYPE(char *, unsigned char *);
-    COMPAT_TYPE(char *, signed char *);
-    COMPAT_TYPE(char *, char *);
-/* space is needed because tcc preprocessor introduces a space between each token */
-    COMPAT_TYPE(char * *, void *); 
-#endif
-    printf("res1 = %d\n", __builtin_constant_p(1));
-    printf("res2 = %d\n", __builtin_constant_p(1 + 2));
-    printf("res3 = %d\n", __builtin_constant_p(&constant_p_var));
-    printf("res4 = %d\n", __builtin_constant_p(constant_p_var));
-    printf("res5 = %d\n", __builtin_constant_p(100000 / constant_p_var));
-#ifdef __clang__
-    /* clang doesn't regard this as constant expression */
-    printf("res6 = 1\n");
-#else
-    printf("res6 = %d\n", __builtin_constant_p(i && 0));
-#endif
-    printf("res7 = %d\n", __builtin_constant_p(i && 1));
-#ifdef __clang__
-    /* clang doesn't regard this as constant expression */
-    printf("res8 = 1\n");
-#else
-    printf("res8 = %d\n", __builtin_constant_p(i && 0 ? i : 34));
-#endif
-    printf("res9 = %d\n", __builtin_constant_p("hi"));
-    printf("res10 = %d\n", __builtin_constant_p(func()));
-    s = 1;
-    ll = 2;
-    i = __builtin_choose_expr (1 != 0, ll, s);
-    printf("bce: %d\n", i);
-    i = __builtin_choose_expr (1 != 1, ll, s);
-    printf("bce: %d\n", i);
-    i = sizeof (__builtin_choose_expr (1, ll, s));
-    printf("bce: %d\n", i);
-    i = sizeof (__builtin_choose_expr (0, ll, s));
-    printf("bce: %d\n", i);
-
-    //printf("bera: %p\n", __builtin_extract_return_addr((void*)43));
-}
 
 #ifdef _WIN32
 void weak_test(void) {}
@@ -4356,7 +4296,6 @@ int main(int argc, char **argv)
     RUN(statement_expr_test);
     RUN(local_label_test);
     RUN(asm_test);
-    RUN(builtin_test);
     RUN(weak_test);
     RUN(global_data_test);
     RUN(cmp_comparison_test);

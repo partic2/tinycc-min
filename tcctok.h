@@ -18,7 +18,6 @@
      DEF(TOK_SWITCH, "switch")
      DEF(TOK_CASE, "case")
 
-     DEF(TOK__Atomic, "_Atomic")
      DEF(TOK_CONST1, "const")
      DEF(TOK_CONST2, "__const") /* gcc keyword */
      DEF(TOK_CONST3, "__const__") /* gcc keyword */
@@ -157,9 +156,6 @@
      DEF(TOK_VISIBILITY1, "visibility")
      DEF(TOK_VISIBILITY2, "__visibility__")
 
-     DEF(TOK_builtin_types_compatible_p, "__builtin_types_compatible_p")
-     DEF(TOK_builtin_choose_expr, "__builtin_choose_expr")
-     DEF(TOK_builtin_constant_p, "__builtin_constant_p")
      DEF(TOK_builtin_frame_address, "__builtin_frame_address")
      DEF(TOK_builtin_return_address, "__builtin_return_address")
      DEF(TOK_builtin_expect, "__builtin_expect")
@@ -175,17 +171,7 @@
      DEF(TOK_builtin_va_start, "__builtin_va_start")
 #endif
 
-/* atomic operations */
-#define DEF_ATOMIC(ID) DEF(TOK_##__##ID, "__"#ID)
-     DEF_ATOMIC(atomic_store)
-     DEF_ATOMIC(atomic_load)
-     DEF_ATOMIC(atomic_exchange)
-     DEF_ATOMIC(atomic_compare_exchange)
-     DEF_ATOMIC(atomic_fetch_add)
-     DEF_ATOMIC(atomic_fetch_sub)
-     DEF_ATOMIC(atomic_fetch_or)
-     DEF_ATOMIC(atomic_fetch_xor)
-     DEF_ATOMIC(atomic_fetch_and)
+
 
 /* pragma */
      DEF(TOK_pack, "pack")

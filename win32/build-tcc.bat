@@ -191,6 +191,5 @@ exit /B %ERRORLEVEL%
 .\tcc -m%1 -c lib/chkstk.S
 .\tcc -m%1 -c ../lib/alloca.S
 .\tcc -m%1 -c ../lib/alloca-bt.S
-.\tcc -m%1 -c ../lib/stdatomic.c
 .\tcc -m%1 -ar lib/libtcc1-%1.a libtcc1.o crt1.o crt1w.o wincrt1.o wincrt1w.o dllcrt1.o dllmain.o chkstk.o alloca.o alloca-bt.o stdatomic.o
 exit /B %ERRORLEVEL%

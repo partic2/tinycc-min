@@ -4316,20 +4316,6 @@ static int parse_btype(CType *type, AttributeDef *ad)
             goto basic_type2;
 
             /* type modifiers */
-        case TOK__Atomic:
-            next();
-            type->t = t;
-            parse_btype_qualify(type, VT_ATOMIC);
-            t = type->t;
-            if (tok == '(') {
-                parse_expr_type(&type1);
-                /* remove all storage modifiers except typedef */
-                type1.t &= ~(VT_STORAGE&~VT_TYPEDEF);
-                if (type1.ref)
-                    sym_to_attr(ad, type1.ref);
-                goto basic_type2;
-            }
-            break;
         case TOK_CONST1:
         case TOK_CONST2:
         case TOK_CONST3:
@@ -4738,9 +4724,6 @@ static CType *type_decl(CType *type, AttributeDef *ad, int *v, int td)
     redo:
         next();
         switch(tok) {
-        case TOK__Atomic:
-            qualifiers |= VT_ATOMIC;
-            goto redo;
         case TOK_CONST1:
         case TOK_CONST2:
         case TOK_CONST3:
@@ -4931,111 +4914,6 @@ static void parse_builtin_params(int nc, const char *args)
         nocode_wanted--;
 }
 
-static void parse_atomic(int atok)
-{
-    int size, align, arg;
-    CType *atom, *atom_ptr, ct = {0};
-    char buf[40];
-    static const char *const templates[] = {
-        /*
-         * Each entry consists of callback and function template.
-         * The template represents argument types and return type.
-         *
-         * ? void (return-only)
-         * b bool
-         * a atomic
-         * A read-only atomic
-         * p pointer to memory
-         * v value
-         * m memory model
-         */
-
-        /* keep in order of appearance in tcctok.h: */
-        /* __atomic_store */            "avm.?",
-        /* __atomic_load */             "Am.v",
-        /* __atomic_exchange */         "avm.v",
-        /* __atomic_compare_exchange */ "apvbmm.b",
-        /* __atomic_fetch_add */        "avm.v",
-        /* __atomic_fetch_sub */        "avm.v",
-        /* __atomic_fetch_or */         "avm.v",
-        /* __atomic_fetch_xor */        "avm.v",
-        /* __atomic_fetch_and */        "avm.v"
-    };
-    const char *template = templates[(atok - TOK___atomic_store)];
-
-    atom = atom_ptr = NULL;
-    size = 0; /* pacify compiler */
-    next();
-    skip('(');
-    for (arg = 0;;) {
-        expr_eq();
-        switch (template[arg]) {
-        case 'a':
-        case 'A':
-            atom_ptr = &vtop->type;
-            if ((atom_ptr->t & VT_BTYPE) != VT_PTR)
-                expect("pointer");
-            atom = pointed_type(atom_ptr);
-            size = type_size(atom, &align);
-            if (size > 8
-                || (size & (size - 1))
-                || (atok > TOK___atomic_compare_exchange
-                    && (0 == btype_size(atom->t & VT_BTYPE)
-                        || (atom->t & VT_BTYPE) == VT_PTR)))
-                expect("integral or integer-sized pointer target type");
-            /* GCC does not care either: */
-            /* if (!(atom->t & VT_ATOMIC))
-                tcc_warning("pointer target declaration is missing '_Atomic'"); */
-            break;
-
-        case 'p':
-            if ((vtop->type.t & VT_BTYPE) != VT_PTR
-             || type_size(pointed_type(&vtop->type), &align) != size)
-                tcc_error("pointer target type mismatch in argument %d", arg + 1);
-            gen_assign_cast(atom_ptr);
-            break;
-        case 'v':
-            gen_assign_cast(atom);
-            break;
-        case 'm':
-            gen_assign_cast(&int_type);
-            break;
-        case 'b':
-            ct.t = VT_BOOL;
-            gen_assign_cast(&ct);
-            break;
-        }
-        if ('.' == template[++arg])
-            break;
-        skip(',');
-    }
-    skip(')');
-
-    ct.t = VT_VOID;
-    switch (template[arg + 1]) {
-    case 'b':
-        ct.t = VT_BOOL;
-        break;
-    case 'v':
-        ct = *atom;
-        break;
-    }
-
-    sprintf(buf, "%s_%d", get_tok_str(atok, 0), size);
-    vpush_helper_func(tok_alloc_const(buf));
-    vrott(arg + 1);
-    gfunc_call(arg);
-
-    vpush(&ct);
-    PUT_R_RET(vtop, ct.t);
-    if (ct.t == VT_BOOL) {
-#ifdef PROMOTE_RET
-	vtop->r |= BFVAL(VT_MUSTCAST, 1);
-#else
-	vtop->type.t = VT_INT;
-#endif
-    }
-}
 
 ST_FUNC void unary(void)
 {
@@ -5261,48 +5139,6 @@ ST_FUNC void unary(void)
 	parse_builtin_params(0, "ee");
 	vpop();
         break;
-    case TOK_builtin_types_compatible_p:
-	parse_builtin_params(0, "tt");
-	vtop[-1].type.t &= ~(VT_CONSTANT | VT_VOLATILE);
-	vtop[0].type.t &= ~(VT_CONSTANT | VT_VOLATILE);
-	n = is_compatible_types(&vtop[-1].type, &vtop[0].type);
-	vtop -= 2;
-	vpushi(n);
-        break;
-    case TOK_builtin_choose_expr:
-	{
-	    int64_t c;
-	    next();
-	    skip('(');
-	    c = expr_const64();
-	    skip(',');
-	    if (!c) {
-		nocode_wanted++;
-	    }
-	    expr_eq();
-	    if (!c) {
-		vpop();
-		nocode_wanted--;
-	    }
-	    skip(',');
-	    if (c) {
-		nocode_wanted++;
-	    }
-	    expr_eq();
-	    if (c) {
-		vpop();
-		nocode_wanted--;
-	    }
-	    skip(')');
-	}
-        break;
-    case TOK_builtin_constant_p:
-	parse_builtin_params(1, "e");
-	n = (vtop->r & (VT_VALMASK | VT_LVAL)) == VT_CONST &&
-            !((vtop->r & VT_SYM) && vtop->sym->a.addrtaken);
-	vtop--;
-	vpushi(n);
-        break;
     case TOK_builtin_frame_address:
     case TOK_builtin_return_address:
         {
@@ -5409,19 +5245,6 @@ ST_FUNC void unary(void)
         break;
     }
 #endif
-
-    /* atomic operations */
-    case TOK___atomic_store:
-    case TOK___atomic_load:
-    case TOK___atomic_exchange:
-    case TOK___atomic_compare_exchange:
-    case TOK___atomic_fetch_add:
-    case TOK___atomic_fetch_sub:
-    case TOK___atomic_fetch_or:
-    case TOK___atomic_fetch_xor:
-    case TOK___atomic_fetch_and:
-        parse_atomic(tok);
-        break;
 
     /* pre operations */
     case TOK_INC:

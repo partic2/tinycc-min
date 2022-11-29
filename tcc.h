@@ -1666,7 +1666,6 @@ ST_FUNC const char *dlerror(void);
 ST_FUNC void *dlsym(void *handle, const char *symbol);
 #endif
 ST_FUNC void tcc_run_free(TCCState *s1);
-ST_FUNC void tcc_add_runtime_funclist(TCCState *s1);
 #endif
 
 

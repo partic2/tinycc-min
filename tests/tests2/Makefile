@@ -23,8 +23,6 @@ ifeq (,$(filter i386,$(ARCH)))
 endif
 ifeq (,$(filter i386 x86_64,$(ARCH)))
  SKIP += 85_asm-outside-function.test # x86 asm
- SKIP += 124_atomic_counter.test
- SKIP += 125_atomic_misc.test # currently only x86 supported
 endif
 CONFIG_backtrace=no
 CONFIG_bcheck=no
@@ -53,7 +51,6 @@ ifeq (-$(CONFIG_WIN32)-,-yes-)
  SKIP += 106_versym.test # No pthread support
  SKIP += 114_bound_signal.test # No pthread support
  SKIP += 117_builtins.test # win32 port doesn't define __builtins
- SKIP += 124_atomic_counter.test # No pthread support
 endif
 ifneq (,$(filter OpenBSD FreeBSD NetBSD,$(TARGETOS)))
  SKIP += 106_versym.test # no pthread_condattr_setpshared
@@ -70,8 +67,6 @@ SKIP += 42_function_pointer.test 120_alias.test 106_versym.test 108_constructor.
 # skip compiler error
 SKIP += 60_errors_and_warnings.test 96_nodata_wanted.test
 
-# skip atomic 
-SKIP += 124_atomic_counter.test 125_atomic_misc.test 
 
 # Some tests might need arguments
 ARGS =
@@ -134,8 +129,6 @@ ifneq ($(CONFIG_bcheck),no)
 121_struct_return.test: FLAGS += -b
 122_vla_reuse.test: FLAGS += -b
 endif
-125_atomic_misc.test: FLAGS += -dt
-124_atomic_counter.test: FLAGS += -pthread
 126_bound_global.test: FLAGS += -b
 126_bound_global.test: NORUN = true
 

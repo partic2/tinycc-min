@@ -204,7 +204,7 @@ static void print_search_dirs(TCCState *s)
 #else
     printf("libtcc1:\n  %s/"TCC_LIBTCC1"\n", s->tcc_lib_path);
     print_dirs("crt", s->crt_paths, s->nb_crt_paths);
-    printf("elfinterp:\n  %s\n",  DEFAULT_ELFINTERP(s));
+    //printf("elfinterp:\n  %s\n",  DEFAULT_ELFINTERP(s));
 #endif
 }
 
