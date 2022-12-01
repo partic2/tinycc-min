@@ -1257,24 +1257,4 @@ ST_FUNC void ggoto(void)
     vtop--;
 }
 
-ST_FUNC void gen_vla_sp_save(int addr)
-{
-    ES(0x23, 3, 8, 2, addr); // sd sp, fc(s0)
-}
-
-ST_FUNC void gen_vla_sp_restore(int addr)
-{
-    EI(0x03, 3, 2, 8, addr); // ld sp, fc(s0)
-}
-
-ST_FUNC void gen_vla_alloc(CType *type, int align)
-{
-    int rr;
-
-    rr = ireg(gv(RC_INT));
-    EI(0x13, 0, rr, rr, 15);   // addi RR, RR, 15
-    EI(0x13, 7, rr, rr, -16);  // andi, RR, RR, -16
-    ER(0x33, 0, 2, 2, rr, 0x20); // sub sp, sp, rr
-    vpop();
-}
 #endif

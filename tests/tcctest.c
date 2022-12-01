@@ -2912,135 +2912,6 @@ void *bounds_checking_is_enabled()
 
 typedef int constant_negative_array_size_as_compile_time_assertion_idiom[(1 ? 2 : 0) - 1];
 
-void c99_vla_test_1(int size1, int size2)
-{
-    int size = size1 * size2;
-    int tab1[size][2], tab2[10][2];
-    void *tab1_ptr, *tab2_ptr, *bad_ptr;
-
-    /* "size" should have been 'captured' at tab1 declaration, 
-        so modifying it should have no effect on VLA behaviour. */
-    size = size-1;
-    
-    printf("Test C99 VLA 1 (sizeof): ");
-    printf("%s\n", (sizeof tab1 == size1 * size2 * 2 * sizeof(int)) ? "PASSED" : "FAILED");
-    tab1_ptr = tab1;
-    tab2_ptr = tab2;
-    printf("Test C99 VLA 2 (ptrs subtract): ");
-    printf("%s\n", (tab2 - tab1 == (tab2_ptr - tab1_ptr) / (sizeof(int) * 2)) ? "PASSED" : "FAILED");
-    printf("Test C99 VLA 3 (ptr add): ");
-    printf("%s\n", &tab1[5][1] == (tab1_ptr + (5 * 2 + 1) * sizeof(int)) ? "PASSED" : "FAILED");
-    printf("Test C99 VLA 4 (ptr access): ");
-    tab1[size1][1] = 42;
-    printf("%s\n", (*((int *) (tab1_ptr + (size1 * 2 + 1) * sizeof(int))) == 42) ? "PASSED" : "FAILED");
-
-    printf("Test C99 VLA 5 (bounds checking (might be disabled)): ");
-    if (bad_ptr = bounds_checking_is_enabled()) {
-        int *t1 = &tab1[size1 * size2 - 1][3];
-        int *t2 = &tab2[9][3];
-        printf("%s ", bad_ptr == t1 ? "PASSED" : "FAILED");
-        printf("%s ", bad_ptr == t2 ? "PASSED" : "FAILED");
-
-        char*c1 = 1 + sizeof(tab1) + (char*)tab1;
-        char*c2 = 1 + sizeof(tab2) + (char*)tab2;
-        printf("%s ", bad_ptr == c1 ? "PASSED" : "FAILED");
-        printf("%s ", bad_ptr == c2 ? "PASSED" : "FAILED");
-
-        int *i1 = tab1[-1];
-        int *i2 = tab2[-1];
-        printf("%s ", bad_ptr == i1 ? "PASSED" : "FAILED");
-        printf("%s ", bad_ptr == i2 ? "PASSED" : "FAILED");
-
-        int *x1 = tab1[size1 * size2 + 1];
-        int *x2 = tab2[10 + 1];
-        printf("%s ", bad_ptr == x1 ? "PASSED" : "FAILED");
-        printf("%s ", bad_ptr == x2 ? "PASSED" : "FAILED");
-    } else {
-        printf("PASSED PASSED PASSED PASSED PASSED PASSED PASSED PASSED ");
-    }
-    printf("\n");
-}
-
-void c99_vla_test_2(int d, int h, int w)
-{
-    int x, y, z;
-    int (*arr)[h][w] = malloc(sizeof(int) * d*h*w);
-    int c = 1;
-
-    printf("Test C99 VLA 6 (pointer)\n");
-
-    for (z=0; z<d; z++) {
-        for (y=0; y<h; y++) {
-            for (x=0; x<w; x++) {
-                arr[z][y][x] = c++;
-            }
-        }
-    }
-    for (z=0; z<d; z++) {
-        for (y=0; y<h; y++) {
-            for (x=0; x<w; x++) {
-                printf(" %2d", arr[z][y][x]);
-            }
-            puts("");
-        }
-        puts("");
-    }
-    printf(" sizes : %d %d %d\n"
-           " pdiff : %d %d\n"
-           " tests : %d %d\n",
-        sizeof (*arr), sizeof (*arr)[0], sizeof (*arr)[0][0],
-        arr + 2 - arr, *arr + 3 - *arr,
-        0 == sizeof (*arr + 1) - sizeof arr,
-        0 == sizeof sizeof *arr - sizeof arr
-        );
-    free (arr);
-}
-
-void c99_vla_test_3a (int arr[2][3][4])
-{
-    printf ("%d\n", arr[1][2][3]);
-}
-
-void c99_vla_test_3b(int s, int arr[s][3][4])
-{
-    printf ("%d\n", arr[1][2][3]);
-}
-
-void c99_vla_test_3c(int s, int arr[2][s][4])
-{
-    printf ("%d\n", arr[1][2][3]);
-}
-
-void c99_vla_test_3d(int s, int arr[2][3][s])
-{
-    printf ("%d\n", arr[1][2][3]);
-}
-
-void c99_vla_test_3e(int s, int arr[][3][s])
-{
-    printf ("%d\n", arr[1][2][3]);
-}
-
-void c99_vla_test_3(void)
-{
-    int a[2][3][4];
-
-    memset (a, 0, sizeof(a));
-    a[1][2][3] = 2;
-    c99_vla_test_3a(a);
-    c99_vla_test_3b(2, a);
-    c99_vla_test_3c(3, a);
-    c99_vla_test_3d(4, a);
-    c99_vla_test_3e(4, a);
-}
-
-void c99_vla_test(void)
-{
-    c99_vla_test_1(5, 2);
-    c99_vla_test_2(3, 4, 5);
-    c99_vla_test_3();
-}
-
 
 void sizeof_test(void)
 {
@@ -3085,9 +2956,6 @@ void sizeof_test(void)
     printf("__alignof__(unsigned char) = %d\n", __alignof__(unsigned char));
     printf("__alignof__(func) = %d\n", __alignof__ sizeof_test());
 
-    /* sizes of VLAs need to be evaluated even inside sizeof: */
-    a = 2;
-    printf("sizeof(char[1+2*a]) = %d\n", sizeof(char[1+2*a]));
     /* And checking if sizeof compound literal works.  Parenthesized: */
     printf("sizeof( (struct {int i; int j;}){4,5} ) = %d\n",
 	   sizeof( (struct {int i; int j;}){4,5} ));
@@ -4290,7 +4158,6 @@ int main(int argc, char **argv)
     RUN(relocation_test);
     RUN(old_style_function_test);
     RUN(alloca_test);
-    RUN(c99_vla_test);
     RUN(sizeof_test);
     RUN(typeof_test);
     RUN(statement_expr_test);

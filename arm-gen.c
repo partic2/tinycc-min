@@ -2163,43 +2163,6 @@ ST_FUNC void ggoto(void)
   vtop--;
 }
 
-/* Save the stack pointer onto the stack and return the location of its address */
-ST_FUNC void gen_vla_sp_save(int addr) {
-    SValue v;
-    v.type.t = VT_PTR;
-    v.r = VT_LOCAL | VT_LVAL;
-    v.c.i = addr;
-    store(TREG_SP, &v);
-}
-
-/* Restore the SP from a location on the stack */
-ST_FUNC void gen_vla_sp_restore(int addr) {
-    SValue v;
-    v.type.t = VT_PTR;
-    v.r = VT_LOCAL | VT_LVAL;
-    v.c.i = addr;
-    load(TREG_SP, &v);
-}
-
-/* Subtract from the stack pointer, and push the resulting value onto the stack */
-ST_FUNC void gen_vla_alloc(CType *type, int align) {
-    int r;
-    r = intr(gv(RC_INT));
-    o(0xE04D0000|(r<<12)|r); /* sub r, sp, r */
-#ifdef TCC_ARM_EABI
-    if (align < 8)
-        align = 8;
-#else
-    if (align < 4)
-        align = 4;
-#endif
-    if (align & (align - 1))
-        tcc_error("alignment is not a power of 2: %i", align);
-    o(stuff_const(0xE3C0D000|(r<<16), align - 1)); /* bic sp, r, #align-1 */
-    vpop();
-
-}
-
 /* end of ARM code generator */
 /*************************************************************/
 #endif

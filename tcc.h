@@ -562,7 +562,6 @@ typedef struct Sym {
     };
     CType type; /* associated type */
     union {
-        int *vla_array_str; /* vla array code */
         struct Sym *next; /* next related symbol (for fields and anoms) */
         struct Sym *cleanupstate; /* in defined labels */
         int asm_label; /* associated asm label */
@@ -1007,7 +1006,6 @@ struct filespec {
 #define VT_BITFIELD    0x0080  /* bitfield modifier */
 #define VT_CONSTANT    0x0100  /* const modifier */
 #define VT_VOLATILE    0x0200  /* volatile modifier */
-#define VT_VLA         0x0400  /* VLA type (also has VT_PTR and VT_ARRAY) */
 #define VT_LONG        0x0800  /* long type (also has VT_INT rsp. VT_LLONG) */
 
 /* storage */
@@ -1537,9 +1535,6 @@ ST_FUNC void ggoto(void);
 #ifndef TCC_TARGET_C67
 ST_FUNC void o(unsigned int c);
 #endif
-ST_FUNC void gen_vla_sp_save(int addr);
-ST_FUNC void gen_vla_sp_restore(int addr);
-ST_FUNC void gen_vla_alloc(CType *type, int align);
 
 static inline uint16_t read16le(unsigned char *p) {
     return p[0] | (uint16_t)p[1] << 8;

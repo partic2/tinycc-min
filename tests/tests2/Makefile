@@ -127,7 +127,6 @@ GEN-ALWAYS =
 117_builtins.test: T1 = ( $(TCC) -run $1 && $(TCC) -b -run $1 )
 ifneq ($(CONFIG_bcheck),no)
 121_struct_return.test: FLAGS += -b
-122_vla_reuse.test: FLAGS += -b
 endif
 126_bound_global.test: FLAGS += -b
 126_bound_global.test: NORUN = true

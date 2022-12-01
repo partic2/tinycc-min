@@ -1988,29 +1988,6 @@ ST_FUNC void gen_clear_cache(void)
     o(0xd5033fdf); // isb
 }
 
-ST_FUNC void gen_vla_sp_save(int addr) {
-    uint32_t r = intr(get_reg(RC_INT));
-    o(0x910003e0 | r); // mov x(r),sp
-    arm64_strx(3, r, 29, addr);
-}
-
-ST_FUNC void gen_vla_sp_restore(int addr) {
-    // Use x30 because this function can be called when there
-    // is a live return value in x0 but there is nothing on
-    // the value stack to prevent get_reg from returning x0.
-    uint32_t r = 30;
-    arm64_ldrx(0, 3, r, 29, addr);
-    o(0x9100001f | r << 5); // mov sp,x(r)
-}
-
-ST_FUNC void gen_vla_alloc(CType *type, int align) {
-    uint32_t r;
-    r = intr(gv(RC_INT));
-    o(0x91003c00 | r | r << 5); // add x(r),x(r),#15
-    o(0x927cec00 | r | r << 5); // bic x(r),x(r),#15
-    o(0xcb2063ff | r << 16); // sub sp,sp,x(r)
-    vpop();
-}
 
 /* end of A64 code generator */
 /*************************************************************/

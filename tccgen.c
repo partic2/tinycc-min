@@ -2374,7 +2374,7 @@ static void type_to_str(char *buf, int buf_size,
         goto no_var;
     case VT_PTR:
         s = type->ref;
-        if (t & (VT_ARRAY|VT_VLA)) {
+        if (t & (VT_ARRAY)) {
             if (varstr && '*' == *varstr)
                 snprintf(buf1, sizeof(buf1), "(%s)[%d]", varstr, s->c);
             else
@@ -2689,7 +2689,7 @@ redo:
             vpush_type_size(pointed_type(&vtop[-1].type), &align);
             gen_op('*');
             gen_opic(op);
-            type1.t &= ~(VT_ARRAY|VT_VLA);
+            type1.t &= ~(VT_ARRAY);
             /* put again type if gen_opic() swaped operands */
             vtop->type = type1;
         }
@@ -3126,10 +3126,6 @@ ST_FUNC int type_size(CType *type, int *a)
    alignment at 'a' */
 static void vpush_type_size(CType *type, int *a)
 {
-    if (type->t & VT_VLA) {
-        type_size(&type->ref->type, a);
-        vset(&int_type, VT_LOCAL|VT_LVAL, type->ref->c);
-    } else {
         int size = type_size(type, a);
         if (size < 0)
             tcc_error("unknown type size");
@@ -3138,7 +3134,6 @@ static void vpush_type_size(CType *type, int *a)
 #else
         vpushi(size);
 #endif
-    }
 }
 
 /* return the pointed type of t */
@@ -4487,12 +4482,11 @@ static int asm_label_instr(void)
 
 static int post_type(CType *type, AttributeDef *ad, int storage, int td)
 {
-    int n, l, t1, arg_size, align, unused_align;
+    int n, l, arg_size, align, unused_align;
     Sym **plast, *s, *first;
     AttributeDef ad1;
     CType pt;
     TokenString *vla_array_tok = NULL;
-    int *vla_array_str = NULL;
 
     if (tok == '(') {
         /* function type, or recursive declarator (return if so) */
@@ -4584,7 +4578,6 @@ static int post_type(CType *type, AttributeDef *ad, int storage, int td)
         /* array definition */
         next();
         n = -1;
-        t1 = 0;
         if (td & TYPE_PARAM) while (1) {
 	    /* XXX The optional type-quals and static should only be accepted
 	       in parameter decls.  The '*' as well, and then even only
@@ -4621,7 +4614,6 @@ static int post_type(CType *type, AttributeDef *ad, int storage, int td)
 		unget_tok(0);
 		tok_str_add(vla_array_tok, -1);
 		tok_str_add(vla_array_tok, 0);
-		vla_array_str = vla_array_tok->str;
 		begin_macro(vla_array_tok, 2);
 		next();
 	        gexpr();
@@ -4648,10 +4640,7 @@ check:
                 if (n < 0)
                     tcc_error("invalid array size");
             } else {
-                if (!is_integer_btype(vtop->type.t & VT_BTYPE))
-                    tcc_error("size of variable length array should be an integer");
-                n = 0;
-                t1 = VT_VLA;
+                tcc_error("size of variable length array should be an integer");
             }
         }
         skip(']');
@@ -4664,25 +4653,6 @@ check:
             || type_size(type, &unused_align) < 0)
             tcc_error("declaration of an array of incomplete type elements");
 
-        t1 |= type->t & VT_VLA;
-
-        if (t1 & VT_VLA) {
-            if (n < 0) {
-		if  (td & TYPE_NEST)
-                    tcc_error("need explicit inner array size in VLAs");
-	    }
-	    else {
-                loc -= type_size(&int_type, &align);
-                loc &= -align;
-                n = loc;
-
-                vpush_type_size(type, &align);
-                gen_op('*');
-                vset(&int_type, VT_LOCAL|VT_LVAL, n);
-                vswap();
-                vstore();
-	    }
-        }
         if (n != -1)
             vpop();
 	nocode_wanted = saved_nocode_wanted;
@@ -4690,14 +4660,8 @@ check:
         /* we push an anonymous symbol which will contain the array
            element type */
         s = sym_push(SYM_FIELD, type, 0, n);
-        type->t = (t1 ? VT_VLA : VT_ARRAY) | VT_PTR;
+        type->t =  VT_ARRAY | VT_PTR;
         type->ref = s;
-	if (vla_array_str) {
-	    if (t1 & VT_VLA)
-	        s->vla_array_str = vla_array_str;
-	    else
-	        tok_str_free_str(vla_array_str);
-	}
     }
     return 1;
 }
@@ -4792,7 +4756,7 @@ ST_FUNC void indir(void)
         gv(RC_INT);
     vtop->type = *pointed_type(&vtop->type);
     /* Arrays and functions are never lvalues */
-    if (!(vtop->type.t & (VT_ARRAY | VT_VLA))
+    if (!(vtop->type.t & (VT_ARRAY))
         && (vtop->type.t & VT_BTYPE) != VT_FUNC) {
         vtop->r |= VT_LVAL;
     }
@@ -6228,24 +6192,6 @@ static void block_cleanup(struct scope *o)
     try_call_scope_cleanup(o->cl.s);
 }
 
-/* ------------------------------------------------------------------------- */
-/* VLA */
-
-static void vla_restore(int loc)
-{
-    if (loc)
-        gen_vla_sp_restore(loc);
-}
-
-static void vla_leave(struct scope *o)
-{
-    struct scope *c = cur_scope, *v = NULL;
-    for (; c != o && c; c = c->prev)
-      if (c->vla.num)
-        v = c;
-    if (v)
-      vla_restore(v->vla.locorig);
-}
 
 /* ------------------------------------------------------------------------- */
 /* local scopes */
@@ -6267,7 +6213,6 @@ static void new_scope(struct scope *o)
 
 static void prev_scope(struct scope *o, int is_expr)
 {
-    vla_leave(o->prev);
 
     if (o->cl.s != o->prev->cl.s)
         block_cleanup(o->prev);
@@ -6296,7 +6241,6 @@ static void leave_scope(struct scope *o)
     if (!o)
         return;
     try_call_scope_cleanup(o->cl.s);
-    vla_leave(o);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -6565,8 +6509,6 @@ again:
         goto block_after_label;
 
     } else if (t == TOK_GOTO) {
-        if (cur_scope->vla.num)
-          vla_restore(cur_scope->vla.locorig);
         if (tok == '*' && gnu_ext) {
             /* computed goto */
             next();
@@ -6629,7 +6571,6 @@ again:
             s->cleanupstate = cur_scope->cl.s;
 
     block_after_label:
-            vla_restore(cur_scope->vla.loc);
             if (tok != '}')
                 goto again;
             /* we accept this, but it is a mistake */
@@ -7516,33 +7457,7 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
         }
     }
 
-    if (type->t & VT_VLA) {
-        int a;
-
-        if (NODATA_WANTED)
-            goto no_alloc;
-
-        /* save before-VLA stack pointer if needed */
-        if (cur_scope->vla.num == 0) {
-            if (cur_scope->prev && cur_scope->prev->vla.num) {
-                cur_scope->vla.locorig = cur_scope->prev->vla.loc;
-            } else {
-                gen_vla_sp_save(loc -= PTR_SIZE);
-                cur_scope->vla.locorig = loc;
-            }
-        }
-
-        vpush_type_size(type, &a);
-        gen_vla_alloc(type, a);
-#if defined TCC_TARGET_PE && defined TCC_TARGET_X86_64
-        /* on _WIN64, because of the function args scratch area, the
-           result of alloca differs from RSP and is returned in RAX.  */
-        gen_vla_result(addr), addr = (loc -= PTR_SIZE);
-#endif
-        gen_vla_sp_save(addr);
-        cur_scope->vla.loc = addr;
-        cur_scope->vla.num++;
-    } else if (has_init) {
+    if (has_init) {
         p.sec = sec;
         decl_initializer(&p, type, addr, DIF_FIRST);
         /* patch flexible array member size back to -1, */
@@ -7561,45 +7476,7 @@ static void decl_initializer_alloc(CType *type, AttributeDef *ad, int r,
     nocode_wanted = saved_nocode_wanted;
 }
 
-/* generate vla code saved in post_type() */
-static void func_vla_arg_code(Sym *arg)
-{
-    int align;
-    TokenString *vla_array_tok = NULL;
 
-    if (arg->type.ref)
-        func_vla_arg_code(arg->type.ref);
-
-    if ((arg->type.t & VT_VLA) && arg->type.ref->vla_array_str) {
-	loc -= type_size(&int_type, &align);
-	loc &= -align;
-	arg->type.ref->c = loc;
-
-	unget_tok(0);
-	vla_array_tok = tok_str_alloc();
-	vla_array_tok->str = arg->type.ref->vla_array_str;
-	begin_macro(vla_array_tok, 1);
-	next();
-	gexpr();
-	end_macro();
-	next();
-	vpush_type_size(&arg->type.ref->type, &align);
-	gen_op('*');
-	vset(&int_type, VT_LOCAL|VT_LVAL, arg->type.ref->c);
-	vswap();
-	vstore();
-	vpop();
-    }
-}
-
-static void func_vla_arg(Sym *sym)
-{
-    Sym *arg;
-
-    for (arg = sym->type.ref->next; arg; arg = arg->next)
-	if (arg->type.t & VT_VLA)
-	    func_vla_arg_code(arg);
-}
 
 /* parse a function defined by symbol 'sym' and generate its code in
    'cur_text_section' */
@@ -7633,7 +7510,6 @@ static void gen_function(Sym *sym)
     local_scope = 0;
     rsym = 0;
     clear_temp_local_var_list();
-    func_vla_arg(sym);
     block(0);
     gsym(rsym);
     nocode_wanted = 0;
@@ -7935,8 +7811,6 @@ found:
                         r |= VT_LVAL;
                     }
                     has_init = (tok == '=');
-                    if (has_init && (type.t & VT_VLA))
-                        tcc_error("variable length array cannot be initialized");
                     if (((type.t & VT_EXTERN) && (!has_init || l != VT_CONST))
 		        || (type.t & VT_BTYPE) == VT_FUNC
                         /* as with GCC, uninitialized global arrays with no size

@@ -85,9 +85,6 @@
 [test_nested_types]
 60_errors_and_warnings.c:177: error: struct/union/enum already defined
 
-[test_vla_1]
-60_errors_and_warnings.c:184: error: need explicit inner array size in VLAs
-
 [test_invalid_alignas]
 60_errors_and_warnings.c:188: error: identifier expected
 

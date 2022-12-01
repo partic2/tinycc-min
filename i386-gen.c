@@ -390,15 +390,7 @@ ST_FUNC void gfunc_call(int nb_args)
             /* align to stack align size */
             size = (size + 3) & ~3;
             /* allocate the necessary size on stack */
-#ifdef TCC_TARGET_PE
-            if (size >= 4096) {
-                r = get_reg(RC_EAX);
-                oad(0x68, size); // push size
-                /* cannot call normal 'alloca' with bound checking */
-                gen_static_call(tok_alloc_const("__alloca"));
-                gadd_sp(4);
-            } else
-#endif
+
             {
                 oad(0xec81, size); /* sub $xxx, %esp */
                 /* generate structure store */
@@ -584,12 +576,7 @@ ST_FUNC void gfunc_epilog(void)
     }
     saved_ind = ind;
     ind = func_sub_sp_offset - FUNC_PROLOG_SIZE;
-#ifdef TCC_TARGET_PE
-    if (v >= 4096) {
-        oad(0xb8, v); /* mov stacksize, %eax */
-        gen_static_call(TOK___chkstk); /* call __chkstk, (does the stackframe too) */
-    } else
-#endif
+
     {
         o(0xe58955);  /* push %ebp, mov %esp, %ebp */
         o(0xec81);  /* sub esp, stacksize */
@@ -989,45 +976,6 @@ ST_FUNC void ggoto(void)
     vtop--;
 }
 
-
-/* Save the stack pointer onto the stack */
-ST_FUNC void gen_vla_sp_save(int addr) {
-    /* mov %esp,addr(%ebp)*/
-    o(0x89);
-    gen_modrm(TREG_ESP, VT_LOCAL, NULL, addr);
-}
-
-/* Restore the SP from a location on the stack */
-ST_FUNC void gen_vla_sp_restore(int addr) {
-    o(0x8b);
-    gen_modrm(TREG_ESP, VT_LOCAL, NULL, addr);
-}
-
-/* Subtract from the stack pointer, and push the resulting value onto the stack */
-ST_FUNC void gen_vla_alloc(CType *type, int align) {
-    int use_call = 0;
-
-#ifdef TCC_TARGET_PE    /* alloca does more than just adjust %rsp on Windows */
-    use_call = 1;
-#endif
-    if (use_call)
-    {
-        vpush_helper_func(TOK_alloca);
-        vswap(); /* Move alloca ref past allocation size */
-        gfunc_call(1);
-    }
-    else {
-        int r;
-        r = gv(RC_INT); /* allocation size */
-        /* sub r,%rsp */
-        o(0x2b);
-        o(0xe0 | r);
-        /* We align to 16 bytes rather than align */
-        /* and ~15, %esp */
-        o(0xf0e483);
-        vpop();
-    }
-}
 
 /* end of X86 code generator */
 /*************************************************************/

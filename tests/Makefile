@@ -20,7 +20,6 @@ TESTS = \
 #memtest 
 #abitest 
 #asm-c-connect-test 
-#vla_test-run 
 #cross-test 
 #tests2-di
 
@@ -29,9 +28,6 @@ TESTS = \
 
 ifeq ($(CONFIG_dll),no)
  TESTS := $(filter-out dlltest, $(TESTS))
-endif
-ifeq (,$(filter arm64 i386 x86_64,$(ARCH)))
- TESTS := $(filter-out vla_test-run,$(TESTS))
 endif
 ifeq (-$(CONFIG_arm_eabi)-$(CONFIG_arm_vfp)-,-yes--)
  TESTS := $(filter-out test3 test1b,$(TESTS))
@@ -257,14 +253,7 @@ ifneq (-$(CONFIG_arm_eabi)-$(CONFIG_arm_vfp)-,-yes--)
 abitest: abitest-tcc
 endif
 
-vla_test$(EXESUF): vla_test.c
-	$(TCC) -o $@ $^
-
-vla_test-run: vla_test$(EXESUF)
-	@echo ------------ $@ ------------
-	./vla_test$(EXESUF)
-
-.PHONY: abitest vla_test
+.PHONY: abitest
 
 asm-c-connect$(EXESUF): asm-c-connect-1.c asm-c-connect-2.c
 	$(TCC) -o $@ $^
@@ -333,7 +322,7 @@ cache: tcc_g
 # clean
 clean:
 	rm -f *~ *.o *.a *.bin *.i *.ref *.out *.out? *.out?b *.cc *.gcc
-	rm -f *-cc *-gcc *-tcc *.exe hello libtcc_test vla_test tcctest[1234]
+	rm -f *-cc *-gcc *-tcc *.exe hello libtcc_test tcctest[1234]
 	rm -f asm-c-connect$(EXESUF) asm-c-connect-sep$(EXESUF)
 	rm -f ex? tcc_g weaktest.*.txt *.def *.pdb *.obj libtcc_test_mt
 	@$(MAKE) -C tests2 $@

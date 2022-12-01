@@ -815,6 +815,7 @@ ST_FUNC void gfunc_call(int nb_args)
     
     gcall_or_jmp(0);
 
+    //only VLA generator need alloca, maybe we will eliminate it one day.
     if ((vtop->r & VT_SYM) && vtop->sym->v == TOK_alloca) {
         /* need to add the "func_scratch" area after alloca */
         o(0x48); func_alloca = oad(0x05, func_alloca); /* add $NN, %rax */
@@ -2091,51 +2092,6 @@ ST_FUNC void ggoto(void)
 {
     gcall_or_jmp(1);
     vtop--;
-}
-
-/* Save the stack pointer onto the stack and return the location of its address */
-ST_FUNC void gen_vla_sp_save(int addr) {
-    /* mov %rsp,addr(%rbp)*/
-    gen_modrm64(0x89, TREG_RSP, VT_LOCAL, NULL, addr);
-}
-
-/* Restore the SP from a location on the stack */
-ST_FUNC void gen_vla_sp_restore(int addr) {
-    gen_modrm64(0x8b, TREG_RSP, VT_LOCAL, NULL, addr);
-}
-
-#ifdef TCC_TARGET_PE
-/* Save result of gen_vla_alloc onto the stack */
-ST_FUNC void gen_vla_result(int addr) {
-    /* mov %rax,addr(%rbp)*/
-    gen_modrm64(0x89, TREG_RAX, VT_LOCAL, NULL, addr);
-}
-#endif
-
-/* Subtract from the stack pointer, and push the resulting value onto the stack */
-ST_FUNC void gen_vla_alloc(CType *type, int align) {
-    int use_call = 0;
-
-#ifdef TCC_TARGET_PE	/* alloca does more than just adjust %rsp on Windows */
-    use_call = 1;
-#endif
-    if (use_call)
-    {
-        vpush_helper_func(TOK_alloca);
-        vswap(); /* Move alloca ref past allocation size */
-        gfunc_call(1);
-    }
-    else {
-        int r;
-        r = gv(RC_INT); /* allocation size */
-        /* sub r,%rsp */
-        o(0x2b48);
-        o(0xe0 | REG_VALUE(r));
-        /* We align to 16 bytes rather than align */
-        /* and ~15, %rsp */
-        o(0xf0e48348);
-        vpop();
-    }
 }
 
 /*
