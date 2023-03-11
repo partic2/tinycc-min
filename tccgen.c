@@ -876,9 +876,11 @@ static void vset_VT_JMP(void)
     int op = vtop->cmp_op;
 
     if (vtop->jtrue || vtop->jfalse) {
+        int origt = vtop->type.t;
         /* we need to jump to 'mov $0,%R' or 'mov $1,%R' */
         int inv = op & (op < 2); /* small optimization */
         vseti(VT_JMP+inv, gvtst(inv, 0));
+        vtop->type.t = origt;
     } else {
         /* otherwise convert flags (rsp. 0/1) to register */
         vtop->c.i = op;
@@ -5826,6 +5828,14 @@ static void expr_cond(void)
         skip(':');
         expr_cond();
 
+        if ((vtop->type.t & VT_BTYPE) == VT_FUNC)
+          mk_pointer(&vtop->type);
+
+        /* cast operands to correct type according to ISOC rules */
+        if (!combine_types(&type, &sv, vtop, '?'))
+          type_incompatibility_error(&sv.type, &vtop->type,
+            "type mismatch in conditional expression (have '%s' and '%s')");
+
         if (c < 0 && is_cond_bool(vtop) && is_cond_bool(&sv)) {
             /* optimize "if (f ? a > b : c || d) ..." for example, where normally
                "a < b" and "c || d" would be forced to "(int)0/1" first, whereas
@@ -5837,18 +5847,12 @@ static void expr_cond(void)
             /* combine jump targets of 2nd op with VT_CMP of 1st op */
             gvtst_set(0, t1);
             gvtst_set(1, t2);
+            gen_cast(&type);
             nocode_wanted = ncw_prev;
             //  tcc_warning("two conditions expr_cond");
             return;
         }
 
-        if ((vtop->type.t & VT_BTYPE) == VT_FUNC)
-          mk_pointer(&vtop->type);
-
-        /* cast operands to correct type according to ISOC rules */
-        if (!combine_types(&type, &sv, vtop, '?'))
-          type_incompatibility_error(&sv.type, &vtop->type,
-            "type mismatch in conditional expression (have '%s' and '%s')");
         /* keep structs lvalue by transforming `(expr ? a : b)` to `*(expr ? &a : &b)` so
            that `(expr ? a : b).mem` does not error  with "lvalue expected" */
         islv = (vtop->r & VT_LVAL) && (sv.r & VT_LVAL) && VT_STRUCT == (type.t & VT_BTYPE);
