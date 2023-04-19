@@ -370,6 +370,7 @@ PUB_FUNC void tcc_free_debug(void *ptr)
     mem_debug_header_t *header;
     if (!ptr)
         return;
+    printf("mem debug stub: free %p \n",ptr);
     header = malloc_check(ptr, "tcc_free");
     mem_cur_size -= header->size;
     header->size = (unsigned)-1;
@@ -448,7 +449,27 @@ PUB_FUNC void tcc_memcheck(void)
 
 /********************************************************/
 /* dynarrays */
-
+#ifdef MEM_DEBUG
+ST_FUNC void dynarray_add_debug(void *ptab, int *nb_ptr, void *data,const char *file,int line){
+    int nb, nb_alloc;
+    void **pp;
+    nb = *nb_ptr;
+    pp = *(void ***)ptab;
+    /* every power of two we double array size */
+    if ((nb & (nb - 1)) == 0) {
+        if (!nb)
+            nb_alloc = 1;
+        else
+            nb_alloc = nb * 2;
+        printf("mem debug stub:%s:%d change %p ",file,line,pp);
+        pp = tcc_realloc(pp, nb_alloc * sizeof(void *));
+        printf(" to %p\n",pp);
+        *(void***)ptab = pp;
+    }
+    pp[nb++] = data;
+    *nb_ptr = nb;
+}
+#else
 ST_FUNC void dynarray_add(void *ptab, int *nb_ptr, void *data)
 {
     int nb, nb_alloc;
@@ -468,6 +489,7 @@ ST_FUNC void dynarray_add(void *ptab, int *nb_ptr, void *data)
     pp[nb++] = data;
     *nb_ptr = nb;
 }
+#endif
 
 ST_FUNC void dynarray_reset(void *pp, int *n)
 {
@@ -478,6 +500,7 @@ ST_FUNC void dynarray_reset(void *pp, int *n)
     tcc_free(*(void**)pp);
     *(void**)pp = NULL;
 }
+
 
 static void tcc_split_path(TCCState *s, void *p_ary, int *p_nb_ary, const char *in)
 {

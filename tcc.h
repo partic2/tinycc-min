@@ -1182,7 +1182,12 @@ PUB_FUNC void _tcc_warning(const char *fmt, ...) PRINTF_LIKE(1,2);
         "%s:%d: in %s(): " msg, __FILE__,__LINE__,__FUNCTION__)
 
 /* other utilities */
+#ifdef MEM_DEBUG
+ST_FUNC void dynarray_add_debug(void *ptab, int *nb_ptr, void *data,const char *file,int line);
+#define dynarray_add(a,b,c) dynarray_add_debug(a,b,c,__FILE__,__LINE__)
+#else
 ST_FUNC void dynarray_add(void *ptab, int *nb_ptr, void *data);
+#endif
 ST_FUNC void dynarray_reset(void *pp, int *n);
 ST_INLN void cstr_ccat(CString *cstr, int ch);
 ST_FUNC void cstr_cat(CString *cstr, const char *str, int len);
@@ -1472,10 +1477,6 @@ ST_FUNC int set_global_sym(TCCState *s1, const char *name, Section *sec, addr_t 
     for (elem = (type *) sec->data + startoff; \
          elem < (type *) (sec->data + sec->data_offset); elem++)
 
-#ifndef ELF_OBJ_ONLY
-ST_FUNC int tcc_load_dll(TCCState *s1, int fd, const char *filename, int level);
-ST_FUNC int tcc_load_ldscript(TCCState *s1, int fd);
-#endif
 
 ST_FUNC void tcc_add_runtime(TCCState *s1);
 
@@ -1577,9 +1578,6 @@ ST_FUNC void gen_cvt_csti(int t);
 #ifdef TCC_TARGET_X86_64
 ST_FUNC void gen_addr64(int r, Sym *sym, int64_t c);
 ST_FUNC void gen_opl(int op);
-#ifdef TCC_TARGET_PE
-ST_FUNC void gen_vla_result(int addr);
-#endif
 ST_FUNC void gen_cvt_sxtw(void);
 ST_FUNC void gen_cvt_csti(int t);
 #endif

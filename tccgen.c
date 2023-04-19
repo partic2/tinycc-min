@@ -45,7 +45,6 @@ static Sym *all_cleanups, *pending_gotos;
 static int local_scope;
 static int in_sizeof;
 static int in_generic;
-ST_DATA char debug_modes;
 
 ST_DATA SValue *vtop;
 static SValue _vstack[1 + VSTACK_SIZE];

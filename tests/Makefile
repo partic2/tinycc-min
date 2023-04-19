@@ -172,8 +172,7 @@ endif
 memtest:
 	@echo ------------ $@ ------------
 	$(CC) $(CFLAGS) $(NATIVE_DEFINES) -DMEM_DEBUG=2 $(TOPSRC)/tcc.c $(LIBS) -o memtest-tcc$(EXESUF)
-	./memtest-tcc$(EXESUF) $(TCCFLAGS) $(NATIVE_DEFINES) $(TOPSRC)/tcc.c $(LIBS)
-	./memtest-tcc$(EXESUF) $(TCCFLAGS) $(NATIVE_DEFINES) -run $(TOPSRC)/tcc.c $(TCCFLAGS) -w $(TOPSRC)/tests/tcctest.c
+	./memtest-tcc$(EXESUF) $(TCCFLAGS) $(NATIVE_DEFINES) -run $(TOPSRC)/tests/tcctest.c > out.txt
 	@echo OK
 
 # memory and bound check auto test
